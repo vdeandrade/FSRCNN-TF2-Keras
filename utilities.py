@@ -9,8 +9,7 @@ from PIL import Image
 import os
 
 #%% Convert bmp to png
-file_path = r"D:\vdeandrade\Deep_learning\GitHub_repos\FSRCNN---Keras\data\test\Set14"
-file_path = r"D:\vdeandrade\Deep_learning\GitHub_repos\FSRCNN---Keras\data\test\Set5"
+file_path = r"D:\vdeandrade\General100\archive"
 file_list = os.listdir(file_path)
 for i in file_list:
     source_files = os.path.join(file_path, i)

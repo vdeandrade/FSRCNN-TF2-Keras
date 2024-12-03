@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Sun Dec  1 09:20:39 2024
-
 @author: Vincent
 """
 
@@ -21,10 +20,10 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 #%% INPUTS:
 
 # Path to the trained model
-model_path = "checkpoints/best_model.h5"
+model_path = "checkpoints/dyn_model_small_patch_lr1e-4_60ep.h5"
 
 # Path to the folder containing test images
-test_image_dir = "data/test/Set5"
+test_image_dir = "data/test/Set5_copy"
 save_im = False
 output_dir = "data/output_images"
 scaling = 3
@@ -41,10 +40,16 @@ def load_and_preprocess_images(image_path, scaling_factor=3):
         np.ndarray: Preprocessed image array.
     """
     orig_image = Image.open(image_path).convert('L')  # Convert to grayscale
-    height, width = orig_image.size
-    height_down, width_down = height // scaling_factor, width // scaling_factor
-    image_downsized = orig_image.resize((height_down, width_down), Image.BICUBIC) # Bicubic downsampling with PIL
-    image_up_bicubic = image_downsized.resize((height, width), Image.BICUBIC) # Bicubic downsampling with PIL
+    width, height = orig_image.size
+    
+    # Adjust dimensions to be divisible by the scaling factor
+    new_width = (width // scaling_factor) * scaling_factor
+    new_height = (height // scaling_factor) * scaling_factor
+    orig_image = orig_image.crop((0, 0, new_width, new_height)) # Crop and rename the original image
+
+    width_down, height_down = width // scaling_factor, height // scaling_factor
+    image_downsized = orig_image.resize((width_down, height_down), Image.BICUBIC)
+    image_up_bicubic = image_downsized.resize((new_width, new_height), Image.BICUBIC)
     image_downsized = np.expand_dims(image_downsized, axis=(0, -1))  # Add batch and channel dimensions for the TF model
     image_downsized = np.array(image_downsized) / 255.0  # Normalize to [0, 1]
 
@@ -76,8 +81,8 @@ def modify_model_for_dynamic_input(model_path):
 
 
 #%% Load the trained model
-# model = modify_model_for_dynamic_input(model_path)
-model = tf.keras.models.load_model(model_path, compile=False)
+model = modify_model_for_dynamic_input(model_path)
+# model = tf.keras.models.load_model(model_path, compile=False)
 
 
 #%%
@@ -96,18 +101,35 @@ for filename in os.listdir(test_image_dir):
         # Preprocess the image
         input_image, bicubic_img, orig_image = load_and_preprocess_images(input_path, scaling_factor=scaling)
 
+        print("Original cropped size:", orig_image.shape)
+        print("Downscaled size:", input_image.shape)
+        print("Upscaled size:", bicubic_img.shape)
+        print(" ")
+
         # Run inference on a single image using the trained model
         sr_image = np.squeeze(model.predict(input_image, verbose=0))
         
         # Generate a image by bicubic interpolatio:
         input_image  = np.squeeze(input_image) # after being passed in the model, dimensions of 1 can be squeezed
         
-        plt.figure()
-        plt.subplot(2,2,1), plt.imshow(orig_image, cmap='gray'), plt.title('Original image')
-        plt.subplot(2,2,2), plt.imshow(input_image, cmap='gray'), plt.title('Input downsampled (%X) image' % scaling)
-        plt.subplot(2,2,3), plt.imshow(bicubic_img, cmap='gray'), plt.title('bicubic interpolation (%X)' % scaling)
-        plt.subplot(2,2,4), plt.imshow(sr_image, cmap='gray'), plt.title('SR image')
-        plt.show()
+        #%% Convert images to tensors if they aren't already
+        orig_im_tensor = tf.convert_to_tensor(orig_image[:,:, np.newaxis], dtype=tf.float32)
+        sr_im_tensor = tf.convert_to_tensor(sr_image[:,:, np.newaxis], dtype=tf.float32)
+        bicub_im_tensor = tf.convert_to_tensor(bicubic_img[:,:, np.newaxis], dtype=tf.float32)
+        psnr_value_sr = tf.image.psnr(orig_im_tensor, sr_im_tensor, max_val=1).numpy()
+        psnr_value_bicub = tf.image.psnr(orig_im_tensor, bicub_im_tensor, max_val=1).numpy()
+        print(f"PSNR for sr img: {psnr_value_sr:.2f} dB")
+        print(f"PSNR for bicubic img: {psnr_value_bicub:.2f} dB")
+                
+
+        #%% Plot results:
+        plt.figure(figsize=(8, 8))
+        plt.subplot(2,2,1), plt.imshow(orig_image, cmap='gray'), plt.title('Orig img'), plt.axis('off')
+        plt.subplot(2,2,2), plt.imshow(input_image, cmap='gray'), plt.title('Downsampled img (%X)' % scaling), plt.axis('off')
+        plt.subplot(2,2,3), plt.imshow(bicubic_img, cmap='gray')
+        plt.title('bicubic interp (%X) \nPSNR=%0.2f dB' % (scaling, psnr_value_bicub)), plt.axis('off')
+        plt.subplot(2,2,4), plt.imshow(sr_image, cmap='gray'), plt.title('SR img \nPSNR=%0.2f dB' % psnr_value_sr), plt.axis('off')
+        plt.tight_layout(), plt.axis('off'), plt.show()
 
         # Save the super-resolved image
         if save_im == True:

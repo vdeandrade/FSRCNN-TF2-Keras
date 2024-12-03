@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """
-    This new version changes the last PReLU activation layer with ReLU that
-    does not require to lear parameters. It enables a modification of the last layer 
+    This new version used shared_axes with PReLU activation layer to share the learned parameters.
+    It enables the model to accept any image size as an input without the need to adjust its dimensions.
 
+    Use tensorboard --logdir logs/fit to monitor the training or analyzed the logs
 """
 
 from __future__ import print_function
@@ -17,24 +18,29 @@ from keras.backend import clear_session
 from numpy import ceil
 import matplotlib.pyplot as plt
 import glob, time, os, logging, datetime
+import pandas as pd
 
 
 #%% USER INPUT:
 #------------------------------------------------------------------------------------
-train_image_paths = glob.glob("./data/train/*.png")
-test_image_paths = glob.glob("./data/test/Set5_Set14_some_urban100/*.png")
-model_name = "FSRCNN" # the scaling factor will be added to the name automatically
+train_image_paths = glob.glob(r"D:\vdeandrade\Deep_learning\training_data\test_patches/*.png") # 281 real images cutted in 36x36 pix patches
+test_image_paths = glob.glob(r"D:\vdeandrade\Deep_learning\training_data\train_patches/*.png") # 36x36 pix patches
+# train_image_paths = glob.glob("./data/train/*.png") # 281 real images
+# test_image_paths = glob.glob("./data/test/Set5_Set14_some_urban100_general100/*.png")
+
+model_fname = "dyn_model_small_patch_lr1e-4" # date is added later to avoid erasing models by mistake
+model_name = "FSRCNN" # Name for TF. The scaling factor is added to the name later
 hr_img_size = (258, 258) # CHOOSE THE TARGET SIZE FOR ITS DIVISION WITH THE SCALING FACTOR TO RETURN AN EVEN NUMBER
 hr_img_size = (36, 36) # CHOOSE THE TARGET SIZE FOR ITS DIVISION WITH THE SCALING FACTOR TO RETURN AN EVEN NUMBER
-batch_size = 242
-learning_rate = 0.001
-epochs = 50
-save_every_n_epochs = 50
+batch_size = 446 # 64
+learning_rate = 0.0001
+epochs = 100
+save_every_n_epochs = 200
 scaling = 3
-aug_factor = 1 # will add to the training data X times the amount of training data
+aug_factor = 6 # will add to the training data X times the amount of training data
 # Load pre-trained weights
-load_former_model = False
-pretrained_weights_path = './checkpoints/best_model_real_im.h5'
+load_former_model = True
+pretrained_weights_path = './checkpoints/dyn_model_small_patch_lr1e-4.h5'
 early_stop = False
 #------------------------------------------------------------------------------------
 
@@ -133,11 +139,11 @@ def crop_and_pad_images(hr_image, target_size=(256, 256)):
     
         # Pad the image if dimensions are smaller than the target
         image = tf.image.pad_to_bounding_box(
-            image,
-            offset_height=0,
-            offset_width=0,
-            target_height=target_height,
-            target_width=target_width)
+                image,
+                offset_height=0,
+                offset_width=0,
+                target_height=target_height,
+                target_width=target_width)
     
         return image
 
@@ -165,12 +171,12 @@ def augment_image(lr_image, hr_image):
     # if tf.random.uniform([]) > 0.5:                        # Random vertical flip
     #     lr_image = tf.image.flip_up_down(lr_image)
     #     hr_image = tf.image.flip_up_down(hr_image)
-    if tf.random.uniform([]) > 0.5:                        # Random rotation
+    if tf.random.uniform([]) > 0.4:                        # Random rotation
         transform = True
         rotations = tf.random.uniform([], minval=0, maxval=4, dtype=tf.int32)
         lr_image = tf.image.rot90(lr_image, rotations)
         hr_image = tf.image.rot90(hr_image, rotations)
-    if tf.random.uniform([]) > 0.5:                        # Random cropping (80%-100% of original size)
+    if tf.random.uniform([]) > 0.4:                        # Random cropping (80%-100% of original size)
         transform = True
         crop_size = tf.random.uniform([], minval=0.8, maxval=1.0)
         lr_crop = tf.image.central_crop(lr_image, crop_size)
@@ -323,30 +329,24 @@ if load_former_model == True:
         print(f"Successfully loaded pre-trained weights from {pretrained_weights_path}")
     except Exception as e:
         print(f"Could not load pre-trained weights. Training will start from scratch. Error: {e}")
+else:
+    print("Starting training from scratch.")
 
 # Compile the model (fresh optimizer, but resume from weights)
-model.compile(
-    optimizer=Adam(learning_rate=0.0001),  # You can tweak the learning rate if needed
-    loss='mse',
-    metrics=[MeanMetricWrapper(psnr_metric, name='psnr_metric')]
-)
-
-
-# Wrapper: wrap psnr because Keras requires metrics to have two arguments (y_true, y_pred).
-# model.compile(optimizer=Adam(learning_rate=0.0001),
-model.compile(optimizer=Adam(learning_rate=learning_rate),
-              loss='mse',
-              metrics=[MeanMetricWrapper(psnr_metric, name='psnr_metric')])
+model.compile(optimizer=Adam(learning_rate=learning_rate),  # You can tweak the learning rate if needed
+            loss='mse',
+            metrics=[MeanMetricWrapper(psnr_metric, name='psnr_metric')])
 
 model.summary() # print the model summary
 
 
 #%% MANAGE THE CHECKPOINTS:
 # Save the best model based on validation loss
-filepath = "./checkpoints/best_model.h5"
+current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M")
+filepath_model = f"./checkpoints/{model_fname}_{current_time}.h5"
 best_checkpoint = ModelCheckpoint(
     # filepath, monitor='val_psnr', save_best_only=True, mode='max', verbose=1) # Mode set to 'max' because PSNR improves as the model gets better
-    filepath="./checkpoints/best_model.h5", monitor='val_loss', save_best_only=True, mode='min', verbose=1)
+    filepath=filepath_model, monitor='val_loss', save_best_only=True, mode='min', verbose=1)
 
 # Save periodic checkpoints every epoch:
 steps_per_epoch = len(train_dataset)
@@ -373,7 +373,13 @@ history = model.fit(train_dataset,
               validation_data=test_dataset,
               epochs=epochs,
               callbacks=callbacks_list)
+
 print("Done training!!!")
+
+#%% Convert history to a DataFrame
+history_df = pd.DataFrame(history.history)
+history_df.to_csv('training_history.csv', index=False)
+
 
 #%% Plot PSNR
 # Access the training history after training:
