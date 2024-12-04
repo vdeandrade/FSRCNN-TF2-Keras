@@ -3,7 +3,7 @@
     This new version used shared_axes with PReLU activation layer to share the learned parameters.
     It enables the model to accept any image size as an input without the need to adjust its dimensions.
     
-    Residual layers and depth increase implemented
+    Residual blocks on the mapping layers and L2 normalization implemented
 
     Use tensorboard --logdir logs/fit to monitor the training or analyzed the logs
 """
@@ -34,14 +34,14 @@ model_fname = "ResBlock_L2_model_patch_lr1e-3" # date is added later to avoid er
 model_name = "FSRCNN_resblock_l2" # Name for TF. The scaling factor is added to the name later
 hr_img_size = (36, 36) # CHOOSE THE TARGET SIZE FOR ITS DIVISION WITH THE SCALING FACTOR TO RETURN AN EVEN NUMBER
 batch_size = 446 # 64
-learning_rate = 0.001
-epochs = 20
+learning_rate = 0.0001
+epochs = 200
 save_every_n_epochs = 200
 scaling = 3
-aug_factor = 5 # will add to the training data X times the amount of training data
+aug_factor = 7 # will add to the training data X times the amount of training data
 # Load pre-trained weights
 load_former_model = True
-pretrained_weights_path = './checkpoints/dyn_model_small_patch_lr1e-4.h5'
+pretrained_weights_path = './checkpoints/ResBlock_L2_model_patch_lr1e-3_20241202-2328.h5'
 early_stop = False
 #------------------------------------------------------------------------------------
 
@@ -174,7 +174,7 @@ def augment_image(lr_image, hr_image):
     #     hr_image = tf.image.flip_up_down(hr_image)
     if tf.random.uniform([]) > 0.4:                        # Random rotation
         transform = True
-        rotations = tf.random.uniform([], minval=0, maxval=4, dtype=tf.int32)
+        rotations = tf.random.uniform([], minval=0, maxval=45, dtype=tf.int32)
         lr_image = tf.image.rot90(lr_image, rotations)
         hr_image = tf.image.rot90(hr_image, rotations)
     if tf.random.uniform([]) > 0.4:                        # Random cropping (80%-100% of original size)
@@ -250,10 +250,10 @@ def residual_block(input_tensor, filters):
         Output tensor after applying the residual block.
     """
     x = Conv2D(filters, (3, 3), padding='same', kernel_initializer='he_normal')(input_tensor)
-    x = LayerNormalization(axis=[1, 2])(x)  # L2 normalization along spatial dimensions
+    x = LayerNormalization(axis=-1)(x)  # L2 normalization along channels axis
     x = PReLU(shared_axes=[1, 2])(x)
     x = Conv2D(filters, (3, 3), padding='same', kernel_initializer='he_normal')(x)
-    x = LayerNormalization(axis=[1, 2])(x)  # L2 normalization along spatial dimensions
+    x = LayerNormalization(axis=-1)(x)  # L2 normalization along channels axis
     x = Add()([x, input_tensor])            # Skip connection
     return x
 
@@ -312,12 +312,12 @@ input_img = Input(shape=(None, None, 1))  # Dynamic input shape
 
 # 1) Feature extraction layer:
 model = Conv2D(56, (5, 5), padding='same', kernel_initializer='he_normal')(input_img)
-model = LayerNormalization(axis=[1, 2])(model)  # L2 normalization along spatial dimensions
+model = LayerNormalization(axis=-1)(model)  # L2 normalization along spatial dimensions
 model = PReLU(shared_axes=[1, 2])(model)
 
 # 2) Shrinking layer reducing feature dimensions:
 model = Conv2D(16, (1, 1), padding='same', kernel_initializer='he_normal')(model)
-model = LayerNormalization(axis=[1, 2])(model)  # L2 normalization
+model = LayerNormalization(axis=-1)(model)  # L2 normalization
 model = PReLU(shared_axes=[1, 2])(model)
 
 # Add residual blocks in the mapping layers
@@ -326,7 +326,7 @@ for _ in range(4):  # Add 4 residual blocks
 
 # 4) Expanding layer restoring the dimensionality:
 model = Conv2D(56, (1, 1), padding='same', kernel_initializer='he_normal')(model)
-model = LayerNormalization(axis=[1, 2])(model)  # L2 normalization
+model = LayerNormalization(axis=-1)(model)  # L2 normalization
 model = PReLU(shared_axes=[1, 2])(model)
 
 # 5) Deconvolution layer performs upscaling to obtain the final HR image

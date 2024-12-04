@@ -5,8 +5,13 @@ Created on Wed Nov 27 09:21:27 2024
 @author: Vincent
 """
 
-from PIL import Image
 import os
+import tensorflow as tf
+import numpy as np
+from PIL import Image
+import matplotlib.pyplot as plt
+import tensorflow as tf
+import time
 
 #%% Convert bmp to png
 file_path = r"D:\vdeandrade\General100\archive"
@@ -18,6 +23,24 @@ for i in file_list:
     file_name_saved = os.path.join(file_path, file_name)
     img.save(file_name_saved)
     # print(file_name_saved)
+
+
+#%%
+# Path to the saved model
+model_path = r"D:\vdeandrade\Deep_learning\GitHub_repos\FSRCNN-TF2-Keras\checkpoints\best_model_dyn_fast_learning.h5"
+model_path = r"D:\vdeandrade\Deep_learning\GitHub_repos\FSRCNN-TF2-Keras\checkpoints\ResBlock_L2_model_patch_lr1e-3_20241202-2328.h5"
+model_path = r"D:\vdeandrade\Deep_learning\GitHub_repos\FSRCNN-TF2-Keras\checkpoints\ResBlock_v2_patch_lr1e-4_20241203-1423.h5"
+
+# Define the custom PSNR metric function
+def psnr_metric(y_true, y_pred):
+    max_pixel = 1.0  # Assuming normalized images in the range [0, 1]
+    return tf.image.psnr(y_true, y_pred, max_val=max_pixel)
+
+# Load the model
+model = tf.keras.models.load_model(model_path, custom_objects={'psnr_metric': psnr_metric})
+# Plot the model summary
+print("Model Summary:")
+model.summary()
 
 
 #%% Displaying Basic Information:

@@ -21,6 +21,8 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # Path to the trained model
 model_path = "checkpoints/dyn_model_small_patch_lr1e-4_60ep.h5"
+# model_path = "checkpoints/ResBlock_L2_model_patch_lr1e-3_20241202-2350.h5"
+model_path = "checkpoints/ResBlock_v2_patch_lr1e-4_20241203-1423.h5"
 
 # Path to the folder containing test images
 test_image_dir = "data/test/Set5_copy"
@@ -81,8 +83,8 @@ def modify_model_for_dynamic_input(model_path):
 
 
 #%% Load the trained model
-model = modify_model_for_dynamic_input(model_path)
-# model = tf.keras.models.load_model(model_path, compile=False)
+# model = modify_model_for_dynamic_input(model_path)
+model = tf.keras.models.load_model(model_path, compile=False)
 
 
 #%%
@@ -97,14 +99,8 @@ for filename in os.listdir(test_image_dir):
         output_path = os.path.join(output_dir, f"sr_{filename}")
 
         print(f"Processing: {filename}")
-        
         # Preprocess the image
         input_image, bicubic_img, orig_image = load_and_preprocess_images(input_path, scaling_factor=scaling)
-
-        print("Original cropped size:", orig_image.shape)
-        print("Downscaled size:", input_image.shape)
-        print("Upscaled size:", bicubic_img.shape)
-        print(" ")
 
         # Run inference on a single image using the trained model
         sr_image = np.squeeze(model.predict(input_image, verbose=0))
@@ -116,19 +112,23 @@ for filename in os.listdir(test_image_dir):
         orig_im_tensor = tf.convert_to_tensor(orig_image[:,:, np.newaxis], dtype=tf.float32)
         sr_im_tensor = tf.convert_to_tensor(sr_image[:,:, np.newaxis], dtype=tf.float32)
         bicub_im_tensor = tf.convert_to_tensor(bicubic_img[:,:, np.newaxis], dtype=tf.float32)
-        psnr_value_sr = tf.image.psnr(orig_im_tensor, sr_im_tensor, max_val=1).numpy()
-        psnr_value_bicub = tf.image.psnr(orig_im_tensor, bicub_im_tensor, max_val=1).numpy()
-        print(f"PSNR for sr img: {psnr_value_sr:.2f} dB")
-        print(f"PSNR for bicubic img: {psnr_value_bicub:.2f} dB")
+
+        psnr_sr = tf.image.psnr(orig_im_tensor, sr_im_tensor, max_val=1).numpy()
+        ssim_sr = tf.image.ssim(orig_im_tensor, sr_im_tensor, max_val=1).numpy()
+        psnr_bicub = tf.image.psnr(orig_im_tensor, bicub_im_tensor, max_val=1).numpy()
+        ssim_bicub = tf.image.ssim(orig_im_tensor, bicub_im_tensor, max_val=1).numpy()
+
+        sr_title = "SR img PSNR & SSIM: %0.2f dB, %0.2f" % (psnr_sr, ssim_sr)
+        bicub_title = "Bicubic interp img PSNR & SSIM: %0.2f dB, %0.2f" % (psnr_bicub, ssim_bicub)
+        print(sr_title), print(sr_title+"\n")
                 
 
         #%% Plot results:
         plt.figure(figsize=(8, 8))
         plt.subplot(2,2,1), plt.imshow(orig_image, cmap='gray'), plt.title('Orig img'), plt.axis('off')
         plt.subplot(2,2,2), plt.imshow(input_image, cmap='gray'), plt.title('Downsampled img (%X)' % scaling), plt.axis('off')
-        plt.subplot(2,2,3), plt.imshow(bicubic_img, cmap='gray')
-        plt.title('bicubic interp (%X) \nPSNR=%0.2f dB' % (scaling, psnr_value_bicub)), plt.axis('off')
-        plt.subplot(2,2,4), plt.imshow(sr_image, cmap='gray'), plt.title('SR img \nPSNR=%0.2f dB' % psnr_value_sr), plt.axis('off')
+        plt.subplot(2,2,3), plt.imshow(bicubic_img, cmap='gray'), plt.title(bicub_title), plt.axis('off')
+        plt.subplot(2,2,4), plt.imshow(sr_image, cmap='gray'), plt.title(sr_title), plt.axis('off')
         plt.tight_layout(), plt.axis('off'), plt.show()
 
         # Save the super-resolved image

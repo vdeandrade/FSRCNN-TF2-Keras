@@ -18,6 +18,10 @@ input_folder = r"D:\vdeandrade\Deep_learning\GitHub_repos\FSRCNN-TF2-Keras\data\
 patch_size = 36 # patch size (n x n)
 output_folder = r"D:\vdeandrade\Deep_learning\GitHub_repos\FSRCNN-TF2-Keras\data\test\val_patches" # path to the output folder storing the patches
 
+input_folder = r"D:\vdeandrade\CT datasets\Combined" # path to the folder with images
+patch_size = 36 # patch size (n x n)
+output_folder = r"D:\vdeandrade\CT datasets\Combined_patches" # path to the output folder storing the patches
+
 
 #%% Functions
 def cut_image_into_patches(image_path, patch_size, output_folder):
