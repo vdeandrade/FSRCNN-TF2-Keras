@@ -10,17 +10,17 @@ import numpy as np
 
 #%% INPUT:
 # Get the patch size and input/output folders from the user
-input_folder = r"D:\vdeandrade\Deep_learning\GitHub_repos\FSRCNN-TF2-Keras\data\train" # path to the folder with images
+input_folder = r"E:\vdeandrade\Stanford_project\Models_from_github\FSRCNN-TF2-Keras\data\DIV2K_train_HR" # path to the folder with images
 patch_size = 36 # patch size (n x n)
-output_folder = r"D:\vdeandrade\Deep_learning\GitHub_repos\FSRCNN-TF2-Keras\data\train_patches" # path to the output folder storing the patches
+output_folder = r"E:\vdeandrade\Stanford_project" # path to the output folder storing the patches
 
-input_folder = r"D:\vdeandrade\Deep_learning\GitHub_repos\FSRCNN-TF2-Keras\data\test\Set5_Set14_some_urban100_general100" # path to the folder with images
+input_folder = r"E:\vdeandrade\Stanford_project\Models_from_github\FSRCNN-TF2-Keras\data\test\Set5_Set14_some_urban100_general100" # path to the folder with images
 patch_size = 36 # patch size (n x n)
-output_folder = r"D:\vdeandrade\Deep_learning\GitHub_repos\FSRCNN-TF2-Keras\data\test\val_patches" # path to the output folder storing the patches
+output_folder = r"E:\vdeandrade\Stanford_project\Models_from_github\FSRCNN-TF2-Keras\data\val_patch" # path to the output folder storing the patches
 
-input_folder = r"D:\vdeandrade\CT datasets\Combined" # path to the folder with images
+input_folder = r"E:\vdeandrade\Stanford_project\Models_from_github\FSRCNN-TF2-Keras\data\train" # path to the folder with images
 patch_size = 36 # patch size (n x n)
-output_folder = r"D:\vdeandrade\CT datasets\Combined_patches" # path to the output folder storing the patches
+output_folder = r"E:\vdeandrade\Stanford_project\Models_from_github\FSRCNN-TF2-Keras\data\train_patch" # path to the output folder storing the patches
 
 
 #%% Functions

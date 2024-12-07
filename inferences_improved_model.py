@@ -22,10 +22,10 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 # Path to the trained model
 model_path = "checkpoints/dyn_model_small_patch_lr1e-4_60ep.h5"
 # model_path = "checkpoints/ResBlock_L2_model_patch_lr1e-3_20241202-2350.h5"
-model_path = "checkpoints/ResBlock_v2_patch_lr1e-4_20241203-1423.h5"
+model_path = "checkpoints/ResBlock_v2_div2k_lr1e-6_20241206-1659.h5"
 
 # Path to the folder containing test images
-test_image_dir = "data/test/Set5_copy"
+test_image_dir = "data/test/tmp"
 save_im = False
 output_dir = "data/output_images"
 scaling = 3

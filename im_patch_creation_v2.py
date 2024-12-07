@@ -11,11 +11,18 @@ Modified script to crop a specified number of patches from the middle of each im
 import os
 from PIL import Image
 
+
 #%% INPUT:
-input_folder = r"D:\vdeandrade\CT datasets\Combined" # path to the folder with images
+input_folder = r"E:\vdeandrade\Stanford_project\Models_from_github\FSRCNN-TF2-Keras\data\DIV2K_train_HR" # path to the folder with images
 patch_size = 36 # patch size (n x n)
-output_folder = r"D:\vdeandrade\CT datasets\Combined_patches_2" # path to the output folder storing the patches
-num_patches = 20  # Number of middle patches to extract
+output_folder = r"E:\vdeandrade\Stanford_project/DIV2K_train_HR_patch" # path to the output folder storing the patches
+num_patches = 625  # Number of middle patches to extract
+
+input_folder = r"E:\vdeandrade\Stanford_project\Models_from_github\FSRCNN-TF2-Keras\data\DIV2K_valid_HR" # path to the folder with images
+patch_size = 36 # patch size (n x n)
+output_folder = r"E:\vdeandrade\Stanford_project/DIV2K_valid_HR_patch" # path to the output folder storing the patches
+num_patches = 625  # Number of middle patches to extract
+
 
 #%% Functions
 def cut_middle_patches(image_path, patch_size, num_patches, output_folder):

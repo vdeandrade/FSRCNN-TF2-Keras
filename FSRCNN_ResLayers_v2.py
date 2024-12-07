@@ -15,7 +15,8 @@ from __future__ import print_function
 import tensorflow as tf
 from tensorflow.image import psnr
 from keras.models import Model
-from keras.optimizers import Adam
+# from keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam
 from keras.layers import Conv2D, Input, Conv2DTranspose, PReLU, Add, LayerNormalization
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping, Callback
 from keras.metrics import MeanMetricWrapper
@@ -23,28 +24,31 @@ from keras.backend import clear_session
 from numpy import ceil
 import matplotlib.pyplot as plt
 import glob, time, os, logging, datetime
-import pandas as pd
+# import pandas as pd
 
 
 #%% USER INPUT:
 #------------------------------------------------------------------------------------
-train_image_paths = glob.glob(r"D:\vdeandrade\Deep_learning\training_data\test_patches/*.png") # 281 real images cutted in 36x36 pix patches
-test_image_paths = glob.glob(r"D:\vdeandrade\Deep_learning\training_data\train_patches/*.png") # 36x36 pix patches
+train_image_paths = glob.glob(r"E:\vdeandrade\Stanford_project\DIV2K_train_HR_patch/*.png") #  real images cutted in 36x36 pix patches
+test_image_paths = glob.glob(r"E:\vdeandrade\Stanford_project\DIV2K_valid_HR_patch/*.png") # 36x36 pix patches
+
+train_image_paths = glob.glob(r"E:\vdeandrade\Stanford_project\Models_from_github\FSRCNN-TF2-Keras\data\train_patch\*.png") # 281 real images cutted in 36x36 pix patches
+test_image_paths = glob.glob(r"E:\vdeandrade\Stanford_project\Models_from_github\FSRCNN-TF2-Keras\data\val_patch\*.png") # 36x36 pix patches
 # train_image_paths = glob.glob("./data/train/*.png") # 281 real images
 # test_image_paths = glob.glob("./data/test/Set5_Set14_some_urban100_general100/*.png")
 
-model_fname = "ResBlock_v2_patch_lr1e-4" # date is added later to avoid erasing models by mistake
+model_fname = "ResBlock_v2_div2k_lr1e-6" # date is added later to avoid erasing models by mistake
 model_name = "FSRCNN_resblock_l2_v2" # Name for TF. The scaling factor is added to the name later
 hr_img_size = (36, 36) # CHOOSE THE TARGET SIZE FOR ITS DIVISION WITH THE SCALING FACTOR TO RETURN AN EVEN NUMBER
-batch_size = 446 # 64
-learning_rate = 0.0001
-epochs = 100
+batch_size = 512 # 64
+learning_rate = 0.000001
+epochs = 20
 save_every_n_epochs = 100
 scaling = 3
 aug_factor = 12 # will add to the training data X times the amount of training data
 # Load pre-trained weights
 load_former_model = True
-pretrained_weights_path = './checkpoints/ResBlock_v2_patch_lr1e-4_20241203-1025.h5'
+pretrained_weights_path = './checkpoints/ResBlock_v2_div2k_lr1e-5_20241206-1614.h5'
 early_stop = False
 #------------------------------------------------------------------------------------
 
@@ -401,8 +405,8 @@ history = model.fit(train_dataset,
 print("Done training!!!")
 
 #%% Convert history to a DataFrame
-history_df = pd.DataFrame(history.history)
-history_df.to_csv('training_history.csv', index=False)
+# history_df = pd.DataFrame(history.history)
+# history_df.to_csv('training_history.csv', index=False)
 
 
 #%% Plot PSNR
