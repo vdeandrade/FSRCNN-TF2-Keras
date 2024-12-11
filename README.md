@@ -27,7 +27,7 @@ Objective:
 
 ## Inference Scripts
 
-### **`inference_improved_model.py`**
+### **`inference.py`**
 This script loads a pre-trained model and performs inference on validation images.  
 Workflow:
 - Processes validation images to generate super-resolution (SR) outputs.

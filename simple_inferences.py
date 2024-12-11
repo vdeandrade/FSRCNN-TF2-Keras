@@ -79,7 +79,7 @@ for filename in os.listdir(test_image_dir):
         plt.figure(figsize=(8, 8))
         plt.subplot(1,3,1), plt.imshow(orig_image, cmap='gray'), plt.title('Orig img'), plt.axis('off')
         plt.subplot(1,3,2), plt.imshow(bicubic_img, cmap='gray'), plt.title("Bicubic interp img"), plt.axis('off')
-        plt.subplot(1,3,3), plt.imshow(sr_image, cmap='gray'), plt.title("SR img "), plt.axis('off')
+        plt.subplot(1,3,3, sharex=plt.gca(), sharey=plt.gca()), plt.imshow(sr_image, cmap='gray'), plt.title("SR img "), plt.axis('off')
         plt.tight_layout(), plt.axis('off'), plt.show()
 
         # Save the super-resolved image
